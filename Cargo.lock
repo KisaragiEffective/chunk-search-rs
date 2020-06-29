@@ -9,8 +9,7 @@ checksum = "ccc9a9dd069569f212bc4330af9f17c4afb5e8ce185e83dbb14f1349dda18b10"
 [[package]]
 name = "anvil-region"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec1d36d22069ea8032732c41c4a4c65c7c73c0dcbb9d6a96975540560556acda"
+source = "git+https://github.com/GiganticMinecraft/anvil-region?rev=3d912728#3d912728d9b73260a62dff228b73efd5a9ca69ea"
 dependencies = [
  "bitvec",
  "byteorder",
@@ -44,6 +43,7 @@ name = "chunk-search-rs"
 version = "0.1.0"
 dependencies = [
  "anvil-region",
+ "named-binary-tag",
 ]
 
 [[package]]
