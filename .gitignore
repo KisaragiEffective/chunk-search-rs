@@ -1,4 +1,5 @@
 /target
 /.idea
 
-src/protos
+src/protos/**
+!src/protos/mod.rs

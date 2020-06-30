@@ -3,18 +3,33 @@ extern crate clap;
 
 use std::env;
 
+mod protos;
+
 use anvil_region::AnvilRegion;
 use nbt::CompoundTag;
 use std::path::{Path, PathBuf};
 use std::fs::OpenOptions;
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Read, stdout};
 use crossbeam_channel::bounded;
 use clap::{App, Arg};
+use protobuf::{RepeatedField, Message};
+use crate::protos::chunk_search::{ChunkCoord, Chunk, SearchResult};
 
 #[derive(Debug)]
 struct ChunkCoordinate {
     x: i32,
     z: i32,
+}
+
+impl From<&ChunkCoordinate> for Chunk {
+    fn from(cc: &ChunkCoordinate) -> Self {
+        let mut chunk = Chunk::new();
+        let mut coord = ChunkCoord::new();
+        coord.set_x(cc.x);
+        coord.set_z(cc.z);
+        chunk.set_coord(coord);
+        chunk
+    }
 }
 
 fn get_coordinate_if_contains_entities(chunk_nbt: &CompoundTag) -> Result<Option<ChunkCoordinate>, nbt::CompoundTagError> {
@@ -122,7 +137,7 @@ fn main() {
 
     let matches = app.get_matches();
 
-    let _ = matches.is_present("protobuf");
+    let use_protobuf = matches.is_present("protobuf");
     let threads =
         match matches.value_of("threads") {
             Some(t) => { t.parse::<u16>().unwrap_or(1).max(1) }
@@ -133,7 +148,20 @@ fn main() {
     let world_folder_path: &Path = Path::new(&world_folder_path_str);
     let region_folder_path = world_folder_path.join("region");
 
-    for ChunkCoordinate { x, z } in list_chunks_in_region_folder(&region_folder_path, threads) {
-        println!("({}, {})", x, z);
+    let result = list_chunks_in_region_folder(&region_folder_path, threads);
+
+    if use_protobuf {
+        let mut search_result: SearchResult = protos::chunk_search::SearchResult::new();
+        {
+            let converted_result = result.iter()
+                .map(Chunk::from)
+                .collect::<Vec<_>>();
+            search_result.set_result(RepeatedField::from(converted_result))
+        }
+        search_result.write_to_writer(&mut stdout()).unwrap();
+    } else {
+        for ChunkCoordinate { x, z } in result {
+            println!("({}, {})", x, z);
+        }
     }
 }
