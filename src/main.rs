@@ -43,8 +43,8 @@ fn list_chunks_with_entities(region_path: &Path) -> () {
         let region_file = region_entry.unwrap().path();
         let mut region = get_anvil_region_instance(&region_file).unwrap();
 
-        for res in region.read_all_chunks().unwrap() {
-            print_if_chunk_has_entity(&res).unwrap();
+        for (x, z) in region.enumerate_all_nonempty_chunks() {
+            println!("({}, {})", x, z);
         }
     }
 }
