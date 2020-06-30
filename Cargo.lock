@@ -79,6 +79,8 @@ dependencies = [
  "crossbeam",
  "crossbeam-channel",
  "named-binary-tag",
+ "protobuf",
+ "protobuf-codegen-pure",
 ]
 
 [[package]]
@@ -255,6 +257,31 @@ dependencies = [
  "byteorder",
  "flate2",
  "linked-hash-map",
+]
+
+[[package]]
+name = "protobuf"
+version = "2.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4951a8253c06334be9fe320bbcf73f14949fde62a0c8128d697eec1ff0fa8cd"
+
+[[package]]
+name = "protobuf-codegen"
+version = "2.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5682cd7a093d1d5c3cbcb9cd4c3c6e4f3cab4c2e4834f9a08e7a1086f88a4f6b"
+dependencies = [
+ "protobuf",
+]
+
+[[package]]
+name = "protobuf-codegen-pure"
+version = "2.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "960d785bbecce3df78a09fa21ac3a64810300e65d8e07df928613ee9bffcb8c4"
+dependencies = [
+ "protobuf",
+ "protobuf-codegen",
 ]
 
 [[package]]
