@@ -6,20 +6,28 @@ use std::path::Path;
 use std::fs::OpenOptions;
 use std::io::{Cursor, Read};
 
-fn print_if_chunk_has_entity(chunk_nbt: &CompoundTag) -> Result<(), nbt::CompoundTagError> {
+struct ChunkCoordinate {
+    x : i32,
+    z : i32
+}
+
+fn get_coordinate_if_contains_entities(chunk_nbt: &CompoundTag) -> Result<Option<ChunkCoordinate>, nbt::CompoundTagError> {
     let level = chunk_nbt.get_compound_tag("Level")?;
 
-    let chunk_x = level.get_i32("xPos")?;
-    let chunk_z = level.get_i32("zPos")?;
+    let x = level.get_i32("xPos")?;
+    let z = level.get_i32("zPos")?;
 
     let chunk_contains_entity = !level.get_compound_tag_vec("Entities")?.is_empty();
     let chunk_contains_tile_entity = !level.get_compound_tag_vec("TileEntities")?.is_empty();
 
-    if chunk_contains_entity || chunk_contains_tile_entity {
-        println!("({}, {})", chunk_x, chunk_z);
-    }
+    let result =
+        if chunk_contains_entity || chunk_contains_tile_entity {
+            Some(ChunkCoordinate { x, z })
+        } else {
+            None
+        };
 
-    Ok(())
+    Ok(result)
 }
 
 fn get_anvil_region_instance(region_file_path: &Path) -> std::io::Result<AnvilRegion<Cursor<Vec<u8>>>> {
@@ -38,15 +46,22 @@ fn get_anvil_region_instance(region_file_path: &Path) -> std::io::Result<AnvilRe
     Ok(region)
 }
 
-fn list_chunks_with_entities(region_path: &Path) -> () {
+fn list_chunks_with_entities(region_path: &Path) -> Vec<ChunkCoordinate> {
+    let mut result = Vec::new();
+
     for region_entry in region_path.read_dir().unwrap() {
         let region_file = region_entry.unwrap().path();
         let mut region = get_anvil_region_instance(&region_file).unwrap();
 
-        for (x, z) in region.enumerate_all_nonempty_chunks() {
-            println!("({}, {})", x, z);
+        for chunk in region.read_all_chunks().unwrap() {
+            match get_coordinate_if_contains_entities(&chunk).unwrap() {
+                Some(c) => { result.push(c) },
+                None => {}
+            }
         }
     }
+
+    result
 }
 
 fn main() {
@@ -55,5 +70,9 @@ fn main() {
     let world_folder_path: &Path = Path::new(&args[1]);
     let region_folder_path = world_folder_path.join("region");
 
-    list_chunks_with_entities(&region_folder_path)
+    let result = list_chunks_with_entities(&region_folder_path);
+
+    for ChunkCoordinate { x, z } in result {
+        println!("({}, {})", x, z);
+    }
 }
