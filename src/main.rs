@@ -5,7 +5,6 @@ use nbt::CompoundTag;
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::io::{Cursor, Read};
-use std::ops::DerefMut;
 
 fn print_if_chunk_has_entity(chunk_nbt: &CompoundTag) -> Result<(), nbt::CompoundTagError> {
     let level = chunk_nbt.get_compound_tag("Level")?;
@@ -45,7 +44,7 @@ fn list_chunks_with_entities(region_path: &Path) -> () {
         let mut region = get_anvil_region_instance(&region_file).unwrap();
 
         for res in region.read_all_chunks().unwrap() {
-            print_if_chunk_has_entity(&res);
+            print_if_chunk_has_entity(&res).unwrap();
         }
     }
 }
