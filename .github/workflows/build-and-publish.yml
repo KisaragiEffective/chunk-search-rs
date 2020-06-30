@@ -1,0 +1,32 @@
+name: Build and publish docker image
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          submodules: recursive
+
+      - name: Publish Docker Image to GPR
+        uses: machine-learning-apps/gpr-docker-publish@master
+        id: docker
+        with:
+          IMAGE_NAME: 'chunk-search'
+          DOCKERFILE_PATH: './Dockerfile'
+          BUILD_CONTEXT: './'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show outputs of previous step
+        run: |
+          echo "The name:tag of the Docker Image is: $VAR1"
+          echo "The docker image is hosted at $VAR2"
+        env:
+          VAR1: ${{ steps.docker.outputs.IMAGE_SHA_NAME }}
+          VAR2: ${{ steps.docker.outputs.IMAGE_URL }}
