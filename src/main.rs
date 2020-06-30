@@ -7,6 +7,7 @@ use std::fs::OpenOptions;
 use std::io::{Cursor, Read};
 use crossbeam_channel::bounded;
 
+#[derive(Debug)]
 struct ChunkCoordinate {
     x : i32,
     z : i32
@@ -95,7 +96,7 @@ fn main() {
 
         drop(snd_search_result);
 
-        rcv_search_result.iter().flatten()
+        rcv_search_result.iter().flatten().collect::<Vec<_>>()
     }).unwrap();
 
     for ChunkCoordinate { x, z } in result {
