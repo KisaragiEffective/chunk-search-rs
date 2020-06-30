@@ -17,7 +17,7 @@ jobs:
         uses: machine-learning-apps/gpr-docker-publish@master
         id: docker
         with:
-          IMAGE_NAME: 'chunk-search'
+          IMAGE_NAME: 'chunk-search-rs'
           DOCKERFILE_PATH: './Dockerfile'
           BUILD_CONTEXT: './'
         env:
