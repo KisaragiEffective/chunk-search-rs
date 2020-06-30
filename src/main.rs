@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate clap;
+
 use std::env;
 
 use anvil_region::AnvilRegion;
@@ -6,11 +9,12 @@ use std::path::{Path, PathBuf};
 use std::fs::OpenOptions;
 use std::io::{Cursor, Read};
 use crossbeam_channel::bounded;
+use clap::{App, Arg};
 
 #[derive(Debug)]
 struct ChunkCoordinate {
-    x : i32,
-    z : i32
+    x: i32,
+    z: i32,
 }
 
 fn get_coordinate_if_contains_entities(chunk_nbt: &CompoundTag) -> Result<Option<ChunkCoordinate>, nbt::CompoundTagError> {
@@ -48,32 +52,24 @@ fn get_anvil_region_instance(region_file_path: &Path) -> std::io::Result<AnvilRe
     Ok(region)
 }
 
-fn list_chunks_with_entities_in_region(region_file: PathBuf) -> Vec<ChunkCoordinate> {
+fn list_chunks_with_entities_in_region(region_file: &PathBuf) -> Vec<ChunkCoordinate> {
     let mut result = Vec::new();
     let mut region = get_anvil_region_instance(&region_file).unwrap();
 
     for chunk in region.read_all_chunks().unwrap() {
-        match get_coordinate_if_contains_entities(&chunk).unwrap() {
-            Some(c) => { result.push(c) },
-            None => {}
+        if let Some(c) = get_coordinate_if_contains_entities(&chunk).unwrap() {
+            result.push(c)
         }
     }
 
     result
 }
 
-const WORKER_THREAD_COUNT: i8 = 12;
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let world_folder_path: &Path = Path::new(&args[1]);
-    let region_folder_path = world_folder_path.join("region");
-
+fn list_chunks_in_region_folder(region_folder_path: &PathBuf, worker_count: u16) -> Vec<ChunkCoordinate> {
     let (snd_region_file_path, rcv_region_file_path) = bounded(1);
     let (snd_search_result, rcv_search_result) = bounded(1);
 
-    let result = crossbeam::scope(|s| {
+    crossbeam::scope(|s| {
         let region_folder_path = region_folder_path.clone();
         s.spawn(move |_| {
             for region_file in region_folder_path.read_dir().unwrap() {
@@ -84,11 +80,11 @@ fn main() {
             drop(snd_region_file_path);
         });
 
-        for _ in 0..WORKER_THREAD_COUNT {
+        for _ in 0..worker_count {
             let (sndsr, rcvfp) = (snd_search_result.clone(), rcv_region_file_path.clone());
             s.spawn(move |_| {
                 for path in rcvfp.iter() {
-                    let result = list_chunks_with_entities_in_region(path);
+                    let result = list_chunks_with_entities_in_region(&path);
                     let _ = sndsr.send(result);
                 }
             });
@@ -97,9 +93,47 @@ fn main() {
         drop(snd_search_result);
 
         rcv_search_result.iter().flatten().collect::<Vec<_>>()
-    }).unwrap();
+    }).unwrap()
+}
 
-    for ChunkCoordinate { x, z } in result {
+fn main() {
+    let app = App::new(crate_name!())
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("protobuf")
+                .help("Enables protobuf-compiled output")
+                .short("p")
+                .long("protobuf")
+        )
+        .arg(
+            Arg::with_name("threads")
+                .help("Number of threads used to process region files")
+                .short("t")
+                .long("threads")
+                .takes_value(true)
+        )
+        .arg(
+            Arg::with_name("world_folder")
+                .help("Location containing world data to be traversed e.g. /spigot/world")
+                .required(true)
+        );
+
+    let matches = app.get_matches();
+
+    let _ = matches.is_present("protobuf");
+    let threads =
+        match matches.value_of("threads") {
+            Some(t) => { t.parse::<u16>().unwrap_or(1).max(1) }
+            None => { 1 }
+        };
+
+    let world_folder_path_str = matches.value_of("world_folder").unwrap();
+    let world_folder_path: &Path = Path::new(&world_folder_path_str);
+    let region_folder_path = world_folder_path.join("region");
+
+    for ChunkCoordinate { x, z } in list_chunks_in_region_folder(&region_folder_path, threads) {
         println!("({}, {})", x, z);
     }
 }

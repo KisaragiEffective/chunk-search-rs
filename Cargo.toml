@@ -2,11 +2,14 @@
 name = "chunk-search-rs"
 version = "0.1.0"
 authors = ["GiganticMinecraft"]
+description = "Command line tool to traverse MineCraft regions and list chunks containing entities or tile-entities"
 edition = "2018"
 
 [dependencies]
 anvil-region = { git = "https://github.com/GiganticMinecraft/anvil-region", rev = "e3d62f53"}
 named-binary-tag = "0.2"
+
+clap = "2.33.0"
 
 # concurrent processing
 
