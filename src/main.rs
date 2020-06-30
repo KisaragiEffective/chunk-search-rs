@@ -2,9 +2,10 @@ use std::env;
 
 use anvil_region::AnvilRegion;
 use nbt::CompoundTag;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::OpenOptions;
 use std::io::{Cursor, Read};
+use crossbeam_channel::bounded;
 
 struct ChunkCoordinate {
     x : i32,
@@ -46,23 +47,21 @@ fn get_anvil_region_instance(region_file_path: &Path) -> std::io::Result<AnvilRe
     Ok(region)
 }
 
-fn list_chunks_with_entities(region_path: &Path) -> Vec<ChunkCoordinate> {
+fn list_chunks_with_entities_in_region(region_file: PathBuf) -> Vec<ChunkCoordinate> {
     let mut result = Vec::new();
+    let mut region = get_anvil_region_instance(&region_file).unwrap();
 
-    for region_entry in region_path.read_dir().unwrap() {
-        let region_file = region_entry.unwrap().path();
-        let mut region = get_anvil_region_instance(&region_file).unwrap();
-
-        for chunk in region.read_all_chunks().unwrap() {
-            match get_coordinate_if_contains_entities(&chunk).unwrap() {
-                Some(c) => { result.push(c) },
-                None => {}
-            }
+    for chunk in region.read_all_chunks().unwrap() {
+        match get_coordinate_if_contains_entities(&chunk).unwrap() {
+            Some(c) => { result.push(c) },
+            None => {}
         }
     }
 
     result
 }
+
+const WORKER_THREAD_COUNT: i8 = 12;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -70,7 +69,34 @@ fn main() {
     let world_folder_path: &Path = Path::new(&args[1]);
     let region_folder_path = world_folder_path.join("region");
 
-    let result = list_chunks_with_entities(&region_folder_path);
+    let (snd_region_file_path, rcv_region_file_path) = bounded(1);
+    let (snd_search_result, rcv_search_result) = bounded(1);
+
+    let result = crossbeam::scope(|s| {
+        let region_folder_path = region_folder_path.clone();
+        s.spawn(move |_| {
+            for region_file in region_folder_path.read_dir().unwrap() {
+                let region_file = region_file.unwrap().path();
+                let _ = snd_region_file_path.send(region_file);
+            }
+
+            drop(snd_region_file_path);
+        });
+
+        for _ in 0..WORKER_THREAD_COUNT {
+            let (sndsr, rcvfp) = (snd_search_result.clone(), rcv_region_file_path.clone());
+            s.spawn(move |_| {
+                for path in rcvfp.iter() {
+                    let result = list_chunks_with_entities_in_region(path);
+                    let _ = sndsr.send(result);
+                }
+            });
+        }
+
+        drop(snd_search_result);
+
+        rcv_search_result.iter().flatten()
+    }).unwrap();
 
     for ChunkCoordinate { x, z } in result {
         println!("({}, {})", x, z);
