@@ -7,5 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anvil-region = { git = "https://github.com/GiganticMinecraft/anvil-region", rev = "3d912728"}
+anvil-region = { git = "https://github.com/GiganticMinecraft/anvil-region", rev = "55311533"}
 named-binary-tag = "0.2"

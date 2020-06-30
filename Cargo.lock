@@ -9,7 +9,7 @@ checksum = "ccc9a9dd069569f212bc4330af9f17c4afb5e8ce185e83dbb14f1349dda18b10"
 [[package]]
 name = "anvil-region"
 version = "0.3.1"
-source = "git+https://github.com/GiganticMinecraft/anvil-region?rev=3d912728#3d912728d9b73260a62dff228b73efd5a9ca69ea"
+source = "git+https://github.com/GiganticMinecraft/anvil-region?rev=55311533#5531153331005f99afa70d77e13ad1e874b294dc"
 dependencies = [
  "bitvec",
  "byteorder",
