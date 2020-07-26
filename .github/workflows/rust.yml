@@ -8,23 +8,17 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
+  RUST_BACKTRACE: verbose
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-18.04]
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
-    - name: Prepare directories
-      run: |
-        mkdir src
-        cd src
-        mkdir proto
-        cd ..
     - name: Build
       run: cargo build --verbose
     - name: Run tests
