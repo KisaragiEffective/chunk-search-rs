@@ -20,7 +20,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Prepare directories
-      run: mkdir src && cd src && mkdir proto && cd ..
+      run: |
+        mkdir src
+        cd src
+        mkdir proto
+        cd ..
     - name: Build
       run: cargo build --verbose
     - name: Run tests
